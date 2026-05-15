@@ -229,6 +229,7 @@ class Widget(object):
             self.bind(value)
         else:
             self._set_value(value)
+        return self
 
     def _set_value(self, value):
         """ To be overridden by subclasses. """
@@ -255,8 +256,12 @@ class Widget(object):
             value:Any The CSS value to set. Numeric values auto-convert to "px"
         """
         if isinstance(prop, dict):
-            prop = to_js(prop)
-        return self.element.css(prop, value) if value is not None else self.element.css(prop)
+            self.element.css(to_js(prop))
+            return self
+        if value is not None:
+             self.element.css(prop, value)
+             return self
+        return self.element.css(prop)
 
     def attr(self, name, value=None):
         """
@@ -271,7 +276,10 @@ class Widget(object):
                 Otherwise, it sets the value, which needs to be a string.
         """
         try:
-            return self.element.attr(name, value) if value is not None else self.element.attr(name)
+            if value is not None:
+                self.element.attr(name, value)
+                return self
+            return self.element.attr(name)
         except Exception as e:
             raise ValueError(f"ltk.{self.__class__.__name__} does not have attribute {name}") from e
 
@@ -291,7 +299,10 @@ class Widget(object):
                 If value is None, this gets the value as a string. 
                 Otherwise, it sets the value, which needs to be a string.
         """
-        return self.element.prop(name, value) if value is not None else self.element.prop(name)
+        if value is not None:
+            self.element.prop(name, value)
+            return self
+        return self.element.prop(name)
 
     def val(self, value=None):
         """
@@ -305,7 +316,10 @@ class Widget(object):
                 If value is None, this gets the value as a string. 
                 Otherwise, it sets the value, which needs to be a string.
         """
-        return self.element.val(value) if value is not None else self.element.val()
+        if value is not None:
+            self.element.val(value)
+            return self
+        return self.element.val()
 
     def height(self, value=None):
         """
@@ -323,7 +337,10 @@ class Widget(object):
                 If value is None, this gets the current height of the DOM element as a number. 
                 Otherwise, it sets the height.
         """
-        return self.element.height(value) if value is not None else self.element.height()
+        if value is not None:
+            self.element.height(value)
+            return self
+        return self.element.height()
 
     def width(self, value=None):
         """
@@ -341,7 +358,10 @@ class Widget(object):
                 If value is None, this gets the current width of the DOM element as a number. 
                 Otherwise, it sets the width.
         """
-        return self.element.width(value) if value is not None else self.element.width()
+        if value is not None:
+            self.element.width(value)
+            return self
+        return self.element.width()
 
     def find(self, selector):
         """
@@ -370,7 +390,8 @@ class Widget(object):
         Args:
             classes:(str,list): One or more space-separated classes or a list of classes to be added
         """
-        return self.element.addClass(classes)
+        self.element.addClass(classes)
+        return self
 
     def removeClass(self, classes): # pylint: disable=invalid-name
         """
@@ -379,7 +400,8 @@ class Widget(object):
         Args:
             classes:(str,list): One or more space-separated classes or a list of classes to remove
         """
-        return self.element.removeClass(classes)
+        self.element.removeClass(classes)
+        return self
 
     def children(self, selector=None):
         """
@@ -404,7 +426,10 @@ class Widget(object):
         Args:
             text:str: A string that to replace the current widget's DOM tree with.
         """
-        return self.element.text() if text is None else self.element.text(text)
+        if text is not None:
+            self.element.text(text)
+            return self
+        return self.element.text()
 
     def html(self, html=None):
         """
@@ -419,7 +444,10 @@ class Widget(object):
         Args:
             text:str: A string that to replace the current widget's DOM tree with.
         """
-        return self.element.html() if html is None else self.element.html(html)
+        if html is not None:
+            self.element.html(html)
+            return self
+        return self.element.html()
 
     def append(self, *children):
         """
@@ -429,7 +457,8 @@ class Widget(object):
         Args:
             selector:str: A string containing a selector expression to match elements against.
         """
-        return self.element.append(*self._flatten(children))
+        self.element.append(*self._flatten(children))
+        return self
 
     def appendTo(self, target): # pylint: disable=invalid-name
         """
@@ -439,7 +468,8 @@ class Widget(object):
             target:(Widget,Element): An LTK widget or a jQuery element
         """
         element = target.element if isinstance(target, Widget) else target
-        return self.element.appendTo(element)
+        self.element.appendTo(element)
+        return self
 
     def empty(self):
         """
@@ -459,7 +489,8 @@ class Widget(object):
                 is always triggered when it reaches the selected element.
             handler:function A Python function that is called when the event happens.
         """
-        return self.element.on(events, selector, data, proxy(handler))
+        self.element.on(events, selector, data, proxy(handler))
+        return self
 
     def animate(self, properties, duration=400, easing="swing", complete=None):
         """
@@ -475,7 +506,13 @@ class Widget(object):
         """
         if isinstance(properties, dict):
             properties = to_js(properties)
-        return self.element.animate(properties, duration, easing, complete and proxy(complete))
+        self.element.animate(properties, duration, easing, complete and proxy(complete))
+        return self
+
+    def with_tooltip(self, text):
+        """ Adds a tooltip to the widget """
+        self.attr("title", text)
+        return self
 
     def __getattr__(self, name):
         try:
@@ -838,6 +875,31 @@ class Slider(Widget):
 
     def _get_value(self):
         return self.element.slider("value")
+
+
+class ProgressBar(Widget):
+    """ Wraps a jQuery progressbar widget """
+    classes = [ "ltk-progressbar" ]
+
+    def __init__(self, value=0, max_value=100, style=None):
+        Widget.__init__(self, style or DEFAULT_CSS)
+        self.element.progressbar(to_js({
+            "value": value,
+            "max": max_value
+        }))
+
+    def _set_value(self, value):
+        self.element.progressbar("value", value)
+
+    def _get_value(self):
+        return self.element.progressbar("value")
+
+
+class Tooltip(Widget):
+    """ Wraps a widget and adds a tooltip """
+    def __init__(self, widget, tooltip_text):
+        self.element = widget.element if isinstance(widget, Widget) else widget
+        self.attr("title", tooltip_text)
 
 
 class Switch(HBox):
@@ -1723,3 +1785,4 @@ def _handle_shortcuts():
 
 
 _handle_shortcuts()
+window.jQuery(window.document).tooltip()
