@@ -634,3 +634,9 @@ body {
 .ltk-vertical-split-pane-middle:hover {
     background-color: #AAF;
 }
+
+.ltk-hr {
+    border: 0;
+    border-top: 1px solid var(--ltk-gray-300);
+    margin: 1rem 0;
+}

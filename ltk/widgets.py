@@ -970,6 +970,12 @@ class Break(Text):
     tag = "br"
 
 
+class HorizontalLine(Widget):
+    """ Wraps an HTML element of type <hr> """
+    classes = [ "ltk-hr" ]
+    tag = "hr"
+
+
 class Heading1(Text):
     """ Wraps an HTML element of type <h1> """
     classes = [ "ltk-h1" ]
