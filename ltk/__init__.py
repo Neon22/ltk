@@ -10,7 +10,7 @@ from ltk.pubsub import *
 from ltk.logger import *
 
 (
-    ltk.Link("https://github.com/pyscript/ltk", "built with LTK")
+    Link("https://github.com/pyscript/ltk", "built with LTK")
         .addClass("ltk-built-with")
         .attr("target", "_blank")
         .appendTo(window.jQuery(window.document.body))
