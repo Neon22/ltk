@@ -812,7 +812,7 @@ class Input(Widget):
     def __init__(self, value, style=None):
         Widget.__init__(self, style or DEFAULT_CSS)
         self.set_value(value)
-        self.on("wheel", proxy(lambda event: None)) # ensure Chrome handles wheel events
+        self.on("wheel", proxy(lambda event: self.element.trigger("change"))) # ensure Chrome handles wheel events
 
     def _set_value(self, value):
         self.element.val(str(value))
