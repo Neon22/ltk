@@ -1763,8 +1763,9 @@ class Canvas(Widget):
     classes = [ "ltk-canvas" ]
     tag = "canvas"
 
-    def __init__(self, style=None) -> None:
-        self._context = None
+    def __init__(self, context_type="2d", style=None) -> None:
+        self._context_cache = {}
+        self._context_type = context_type
         self._font = None
         self._fill_style = None
         self._stroke_style = None
@@ -1781,9 +1782,13 @@ class Canvas(Widget):
                 raise AttributeError(error) # pylint: disable=raise-missing-from
 
     def __setattr__(self, name, value):
-        if name != "_context" and self._context and hasattr(self._context, name):
-            setattr(self._context, name, value)
-        elif name != "_context" and hasattr(self.element, name):
+        if name.startswith("_"):
+            super().__setattr__(name, value)
+            return
+        context = self._context_cache.get(self._context_type)
+        if context and hasattr(context, name):
+            setattr(context, name, value)
+        elif hasattr(self.element, name):
             setattr(self.element, name, value)
         else:
             super().__setattr__(name, value)
@@ -1791,9 +1796,13 @@ class Canvas(Widget):
     @property
     def context(self):
         """ The context for the canvas """
-        if self._context is None:
-            self._context = self.element[0].getContext("2d")
-        return self._context
+        return self.get_context(self._context_type)
+
+    def get_context(self, context_type, options=None):
+        """ Returns the context for the canvas """
+        if context_type not in self._context_cache:
+            self._context_cache[context_type] = self.element[0].getContext(context_type, to_js(options) if options else None)
+        return self._context_cache[context_type]
 
     @property
     def stroke_style(self):
@@ -1828,33 +1837,138 @@ class Canvas(Widget):
             self._font = value
             self.context.font = value
 
+    def begin_path(self):
+        """ Begins a new path """
+        self.context.beginPath()
+        return self
+
+    def close_path(self):
+        """ Closes the current path """
+        self.context.closePath()
+        return self
+
+    def move_to(self, x, y):
+        """ Moves the path to a new point """
+        self.context.moveTo(x, y)
+        return self
+
+    def line_to(self, x, y):
+        """ Draws a line to a new point """
+        self.context.lineTo(x, y)
+        return self
+
+    def stroke(self):
+        """ Strokes the current path """
+        self.context.stroke()
+        return self
+
+    def fill(self, fill_rule="nonzero"):
+        """ Fills the current path """
+        self.context.fill(fill_rule)
+        return self
+
+    def arc(self, x, y, radius, start_angle, end_angle, counterclockwise=False):
+        """ Draws an arc on the canvas """
+        self.context.arc(x, y, radius, start_angle, end_angle, counterclockwise)
+        return self
+
+    def arc_to(self, x1, y1, x2, y2, radius):
+        """ Draws an arc to the canvas """
+        self.context.arcTo(x1, y1, x2, y2, radius)
+        return self
+
+    def ellipse(self, x, y, radius_x, radius_y, rotation, start_angle, end_angle, counterclockwise=False):
+        """ Draws an ellipse on the canvas """
+        self.context.ellipse(x, y, radius_x, radius_y, rotation, start_angle, end_angle, counterclockwise)
+        return self
+
+    def bezier_curve_to(self, cp1x, cp1y, cp2x, cp2y, x, y):
+        """ Draws a bezier curve to the canvas """
+        self.context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y)
+        return self
+
+    def quadratic_curve_to(self, cpx, cpy, x, y):
+        """ Draws a quadratic curve to the canvas """
+        self.context.quadraticCurveTo(cpx, cpy, x, y)
+        return self
+
+    def save(self):
+        """ Saves the current state of the canvas """
+        self.context.save()
+        return self
+
+    def restore(self):
+        """ Restores the original state of the canvas """
+        self.context.restore()
+        return self
+
+    def translate(self, x, y):
+        """ Translates the canvas """
+        self.context.translate(x, y)
+        return self
+
+    def rotate(self, angle):
+        """ Rotates the canvas """
+        self.context.rotate(angle)
+        return self
+
+    def scale(self, x, y):
+        """ Scales the canvas """
+        self.context.scale(x, y)
+        return self
+
+    def clear_rect(self, x, y, w, h):
+        """ Clears a rectangle on the canvas """
+        self.context.clearRect(x, y, w, h)
+        return self
+
+    def draw_image(self, image, x, y, width=None, height=None):
+        """ Draws an image on the canvas """
+        if width is not None and height is not None:
+            self.context.drawImage(image, x, y, width, height)
+        else:
+            self.context.drawImage(image, x, y)
+        return self
+
+    def clip(self, fill_rule="nonzero"):
+        """ Clips the current path """
+        self.context.clip(fill_rule)
+        return self
+
     def line(self, x1, y1, x2, y2):
         """ Draws a line on the canvas """
         window.canvas.line(self.context, x1, y1, x2, y2)
+        return self
 
     def text(self, x, y, text): # pylint: disable=arguments-differ
         """ Draws the outline of a text on the canvas """
         window.canvas.text(self.context, x, y, text)
+        return self
 
     def fill_text(self, x, y, text):
         """ Fills a text on the canvas """
         self.context.fillText(text, x, y)
+        return self
 
     def rect(self, x, y, w, h):
         """ Draws a rectangle on the canvas """
         window.canvas.rect(self.context, x, y, w, h)
+        return self
 
     def fill_rect(self, x, y, w, h):
         """ Fills a rectangle on the canvas """
         self.context.fillRect(x, y, w, h)
+        return self
 
     def circle(self, x, y, radius):
         """ Draws a circle on the canvas """
         window.canvas.circle(self.context, x, y, radius)
+        return self
 
     def fill_circle(self, x, y, radius):
         """ Fills a circle on the canvas """
         window.canvas.fillCircle(self.context, x, y, radius)
+        return self
 
 
 def _close_all_menus(event=None):
