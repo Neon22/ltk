@@ -970,7 +970,7 @@ class Break(Text):
     tag = "br"
 
 
-class HorizontalLine(Widget):
+class HLine(Widget):
     """ Wraps an HTML element of type <hr> """
     classes = [ "ltk-hr" ]
     tag = "hr"
