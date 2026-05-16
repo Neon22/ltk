@@ -134,6 +134,44 @@
     height: 28px;
 }
 
+.ltk-spinner {
+    height: 28px;
+}
+
+.ltk-spinner .ui-spinner-input {
+    border: none;
+    outline: none;
+    padding: 4px;
+    background: transparent;
+}
+
+.ltk-spinner.ui-spinner {
+    border: 1px solid var(--ltk-border-color);
+    background: var(--ltk-white);
+    display: inline-flex;
+    align-items: center;
+    padding-right: 20px;
+}
+
+.ltk-accordion {
+    font-family: var(--ltk-font-sans-serif);
+}
+
+.ltk-accordion .ui-accordion-header {
+    background: var(--ltk-gray-100);
+    border: 1px solid var(--ltk-gray-300);
+    color: var(--ltk-body-color);
+    font-size: 14px;
+    margin-top: 2px;
+}
+
+.ltk-accordion .ui-accordion-content {
+    border: 1px solid var(--ltk-gray-300);
+    border-top: none;
+    background: var(--ltk-white);
+    padding: 10px;
+}
+
 .ltk-container {
     margin: 0;
     padding: 0;
@@ -467,6 +505,30 @@
 .ltk-arrow.ltk-arrow-right {
     border-left-color: #456;
     border-right-width: 0px;
+}
+
+/* Fallback icons for Spinner if jQuery UI images fail to load */
+.ui-icon-triangle-1-n {
+    background-image: none !important;
+    text-indent: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+.ui-icon-triangle-1-n::before {
+    content: "▲";
+    font-size: 10px;
+}
+.ui-icon-triangle-1-s {
+    background-image: none !important;
+    text-indent: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+.ui-icon-triangle-1-s::before {
+    content: "▼";
+    font-size: 10px;
 }
 
 .ltk-built-with {

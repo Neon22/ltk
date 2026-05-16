@@ -1080,6 +1080,38 @@ class ListItem(Container):
     tag = "li"
 
 
+class Spinner(Widget):
+    """ Wraps an HTML element of type jQueryUI spinner """
+    classes = [ "ltk-spinner" ]
+    tag = "input"
+
+    def __init__(self, value=0, min_value=0, max_value=100, style=None):
+        Widget.__init__(self, style or DEFAULT_CSS)
+        self.input = self.element
+        self.input.spinner(to_js({
+            "min": min_value,
+            "max": max_value,
+        }))
+        self.element = self.input.spinner("widget")
+        self.element.addClass("ltk-spinner")
+        self._on_spin = proxy(lambda *args: self.input.trigger("change"))
+        self.input.on("spin", self._on_spin)
+        self.input.on("spinchange", self._on_spin)
+        self.set_value(value)
+
+    def _set_value(self, value):
+        self.input.spinner("value", value)
+
+    def _get_value(self):
+        return self.input.spinner("value")
+
+    def val(self, value=None):
+        if value is not None:
+            self._set_value(value)
+            return self
+        return self._get_value()
+
+
 class Tabs(Widget):
     """ Wraps an HTML element of type jQueryUI tabs """
     classes = [ "ltk-tabs" ]
