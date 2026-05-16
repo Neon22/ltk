@@ -1112,6 +1112,49 @@ class Spinner(Widget):
         return self._get_value()
 
 
+class Autocomplete(Input):
+    """ Wraps an HTML element of type jQueryUI autocomplete """
+    classes = [ "ltk-autocomplete" ]
+
+    def __init__(self, source, value="", options=None, style=None):
+        Input.__init__(self, value, style)
+        
+        # Initialize autocomplete
+        self.element.autocomplete()
+        
+        if isinstance(source, ModelAttribute):
+            self.bind_source(source)
+        else:
+            self._set_source(source)
+        
+        if options:
+            for key, val in options.items():
+                self.element.autocomplete("option", key, self._to_js(val))
+        
+        # Explicit select handler to trigger change event for data binding/reactivity.
+        # Use schedule to ensure jQuery UI has updated the input value first.
+        self.on("autocompleteselect", proxy(lambda *args: schedule(lambda: self.element.trigger("change"), f"autocomplete-select-{id(self)}", 0.05)))
+
+    def _to_js(self, v):
+        if isinstance(v, (list, dict)):
+            from ltk.jquery import to_js
+            return to_js(v)
+        return v
+
+    def _set_source(self, source):
+        self.element.autocomplete("option", "source", self._to_js(source))
+
+    def bind_source(self, attribute):
+        """ Establish a binding between this Widget's source and a model attribute """
+        def set_widget_source(_=None):
+            self._set_source(attribute.get_value())
+
+        set_widget_source()
+        attribute.listeners.append(set_widget_source)
+        return self
+
+
+
 class Tabs(Widget):
     """ Wraps an HTML element of type jQueryUI tabs """
     classes = [ "ltk-tabs" ]

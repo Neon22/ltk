@@ -172,6 +172,24 @@
     padding: 10px;
 }
 
+.ui-autocomplete {
+    z-index: 10000;
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px;
+    border: 1px solid var(--ltk-gray-300);
+    background: var(--ltk-white);
+    font-size: 14px;
+    font-family: var(--ltk-font-sans-serif);
+}
+
+.ui-menu-item-wrapper.ui-state-active {
+    background-color: var(--ltk-primary);
+    border: 1px solid var(--ltk-primary);
+    color: white;
+}
+
 .ltk-container {
     margin: 0;
     padding: 0;
