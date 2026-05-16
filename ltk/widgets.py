@@ -1123,6 +1123,24 @@ class Tabs(Widget):
         return self.element.children().eq(index + 1)
 
 
+class Accordion(Widget):
+    """ Wraps an HTML element of type jQueryUI accordion """
+    classes = [ "ltk-accordion" ]
+    tag = "div"
+
+    def __init__(self, *sections):
+        Widget.__init__(self)
+        for section in self._flatten(sections):
+            self.add_section(section)
+        self.accordion()
+
+    def add_section(self, section):
+        """ Adds a new section """
+        label = section.attr("name") or "Section"
+        self.append(Heading3(label))
+        self.append(Div(section))
+
+
 class File(Widget):
     """ Wraps an HTML element of type <input type=file> """
     classes = [ "ltk-file" ]
