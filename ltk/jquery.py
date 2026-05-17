@@ -113,6 +113,10 @@ def dumps(data):
     """ Returns a JSON string for the given data. """
     try:
         def encode(obj):
+            if hasattr(obj, "value") and "ModelAttribute" in str(type(obj)):
+                return obj.value
+            if hasattr(obj, "encode") and "Model" in str(type(obj)):
+                return json.loads(obj.encode())
             try:
                 return obj.__class__.__name__
             except: # pylint: disable=bare-except
