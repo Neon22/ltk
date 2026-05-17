@@ -1607,33 +1607,40 @@ class Tutorial():
     """ Creates a tutorial """
     tag = None
 
-    def __init__(self, steps):
+    def __init__(self, steps, setup=None, teardown=None):
         self.steps = steps
         self.index = 0
-        self.steps = steps
+        self.setup = setup
+        self.teardown = teardown
 
     def run(self):
         """ Runs the tutorial """
+        if self.setup:
+            self.setup()
         self.index = 0
         self.show()
 
     def close(self):
         """ Closes the tutorial """
         find(".leader-line, .ltk-step").remove()
+        if self.teardown:
+            self.teardown()
 
     def previous(self):
         """ Goes to the previous step """
-        self.close()
+        find(".leader-line, .ltk-step").remove()
         if self.index > 0:
             self.index -= 1
             self.show()
 
     def next(self):
         """ Goes to the next step """
-        self.close()
-        if self.index < len(self.steps):
+        find(".leader-line, .ltk-step").remove()
+        if self.index < len(self.steps) - 1:
             self.index += 1
             self.show()
+        else:
+            self.close()
 
     def event(self, index):
         """ Handles the event for the current step """
