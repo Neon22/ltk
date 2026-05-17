@@ -7,7 +7,6 @@ LTK - Copyright 2024 - All Rights Reserved - chrislaffra.com - See LICENSE
 import json
 import logging
 import math
-import inspect
 
 from ltk.jquery import callback
 from ltk.jquery import create
@@ -25,99 +24,9 @@ BROWSER_SHORTCUTS = [ "Cmd+N","Cmd+T","Cmd+W", "Cmd+Q" ]
 DEFAULT_CSS = {}
 shortcuts = {}
 timers = {}
-INSPECT_IGNORE_ATTRIBUTES = set([
-    "jquery",
-    "element",
-    "length",
-    "DEBUG",
-    "instances",
-    "INSPECT",
-    "highlighted",
-])
 
 logger = logging.getLogger("root")
     
-class Inspector(object):
-    """ Highlights a widget """
-
-    def __init__(self):
-        self.top = create("<div>").addClass("ltk-highlight-top").appendTo("body")
-        self.left = create("<div>").addClass("ltk-highlight-left").appendTo("body")
-        self.bottom = create("<div>").addClass("ltk-highlight-bottom").appendTo("body")
-        self.right = create("<div>").addClass("ltk-highlight-right").appendTo("body")
-        self.details = create("<div>").addClass("ltk-highlight-details").appendTo("body")
-
-    def show(self, widget):
-        """ Show the highlight """
-        top = widget.offset().top
-        left = widget.offset().left
-        width = widget.outerWidth()
-        height = widget.outerHeight()
-        self.top.css("display", "block").css("top", top).css("left", left).width(width)
-        self.left.css("display", "block").css("left", left).css("top", top).height(height)
-        self.bottom.css("display", "block").css("top", top + height - 2).css("left", left) \
-            .width(width)
-        self.right.css("display", "block").css("left", left + width - 2).css("top", top) \
-            .height(height)
-        self.details.css("display", "block") \
-            .html(f"""
-                An LTK Python widget of class <tt>{widget.__class__.__name__}</tt><ul>
-                <li>{widget.__class__.__doc__.replace("<", "&lt;")}
-                {self.get_attrs(widget)}
-                {self.get_classes(widget)}
-                <li>id = {widget.attr("id")}
-                <li>{self.get_creation_link(widget)}
-                <li>{widget.children().length} children
-            """)
-        details_left = max(0, left - self.details.outerWidth() + 2) \
-             if left + width > find("body").width() * 3 / 4 else left + width - 2
-        self.details.css("left", details_left).css("top", top)
-
-    def hide(self):
-        """ Hide the highlight """
-        self.top.css("display", "none")
-        self.left.css("display", "none")
-        self.bottom.css("display", "none")
-        self.right.css("display", "none")
-        self.details.css("display", "none")
-
-    def get_classes(self, widget):
-        """ Show the classes of a widget """
-        return f"<li>classes = [{', '.join(widget.element[0].classList.toString().split())}]<//li>"
-
-    def get_attrs(self, widget):
-        """ Show the attributes of a widget """
-        result = []
-        for name, value in widget.__dict__.items():
-            if name.startswith("_") or name in INSPECT_IGNORE_ATTRIBUTES:
-                continue
-            value = str(value)
-            if "<bound" in value or "<JsProxy" in value:
-                continue
-            result.append(f"{name} = {value}")
-        return ("<li>" if result else "") + "<li>".join(result)
-
-    def get_creation_link(self, widget):
-        """ Show where the widget was created """
-        caller = widget._caller # pylint: disable=protected-access
-        if caller is None:
-            return "Run with PyOdide to show where this widget was created"
-        home = window.development_location
-        filename = caller.f_code.co_filename.replace("/home/pyodide/", "")
-        lineno = caller.f_lineno
-        abspath = f"{home}/{filename}"
-        url = f"vscode://file:/{abspath}:{lineno}"
-        return f"Created at: <a href={url}>{filename}:{lineno}</a>"
-
-    @classmethod
-    def get_caller(cls):
-        """ Get the first caller that is not in widgets.py """
-        frame = inspect.currentframe()
-        while frame:
-            if not "ltk/widgets.py" in frame.f_code.co_filename:
-                return frame
-            frame = frame.f_back
-
 
 widgets = {}
 window.getWidget = proxy(lambda element: widgets[element.attr("ltk_id")])
@@ -130,10 +39,8 @@ class Widget(object):
     element = None
     tag = "div"
 
-    DEBUG = True
-    INSPECT = True
-
-    _inspector = Inspector() if INSPECT else None
+    DEBUG = False
+    INSPECT = False
 
 
     def __init__(self, *args):
@@ -154,17 +61,6 @@ class Widget(object):
         widgets[str(id(self))] = self
         self.attr("ltk_id", str(id(self)))
         self._handle_css(args)
-        if Widget.INSPECT:
-            self.on("mousemove", proxy(lambda event: self._on_mousemove(event)))
-            self._caller = Inspector.get_caller()
-
-    def _on_mousemove(self, event):
-        """Handle mousemove event."""
-        if event.shiftKey and event.ctrlKey:
-            Widget._inspector.show(self)
-            event.stopPropagation()
-        else:
-            Widget._inspector.hide()
 
     def _handle_css(self, args):
         """Apply CSS styles passed in the args to the widget.
@@ -200,6 +96,8 @@ class Widget(object):
             elif isinstance(child, list):
                 result.extend(self._flatten(child))
             elif isinstance(child, (int, float, bool)):
+                result.append(str(child))
+            elif isinstance(child, ModelAttribute):
                 result.append(str(child))
             else:
                 result.append(child)
@@ -259,8 +157,8 @@ class Widget(object):
             self.element.css(to_js(prop))
             return self
         if value is not None:
-             self.element.css(prop, value)
-             return self
+            self.element.css(prop, value)
+            return self
         return self.element.css(prop)
 
     def attr(self, name, value=None):
@@ -515,10 +413,7 @@ class Widget(object):
         return self
 
     def __getattr__(self, name):
-        try:
-            return getattr(self.element, name)
-        except Exception as e:
-            raise AttributeError(f"Widget {self.__class__.__name__} does not have attribute {name}") from e
+        return getattr(self.element, name)
 
     def toJSON(self, *args): # pylint: disable=invalid-name
         """ Return a JSON representation of the widget """
@@ -708,8 +603,8 @@ class ModelAttribute():
         try:
             schedule(self.notify, f"ltk-model-nofity-{id(self)}") # assume there was a side effect
             return getattr(self.value, name)
-        except Exception as e:
-            raise AttributeError(f"Model attribute {self.model.__class__.__name__}.{self.name} of type {type(self.value)} does not have attribute {name}") from e
+        except Exception: # pylint: disable=broad-except
+            raise AttributeError(f"Model attribute {self.model.__class__.__name__}.{self.name} of type {type(self.value)} does not have attribute {name}")
 
     def __int__(self): return int(self.value)         # pylint: disable=multiple-statements
     def __bool__(self): return bool(self.value)        # pylint: disable=multiple-statements
@@ -884,9 +779,10 @@ class ProgressBar(Widget):
     def __init__(self, value=0, max_value=100, style=None):
         Widget.__init__(self, style or DEFAULT_CSS)
         self.element.progressbar(to_js({
-            "value": value,
+            "value": value.value if hasattr(value, "value") and "ModelAttribute" in str(type(value)) else value,
             "max": max_value
         }))
+        self.set_value(value)
 
     def _set_value(self, value):
         self.element.progressbar("value", value)
@@ -1120,19 +1016,14 @@ class Autocomplete(Input):
         Input.__init__(self, value, style)
         
         # Initialize autocomplete
-        self.element.autocomplete()
+        self.element.autocomplete(self._to_js(options or {}))
         
         if isinstance(source, ModelAttribute):
             self.bind_source(source)
         else:
             self._set_source(source)
         
-        if options:
-            for key, val in options.items():
-                self.element.autocomplete("option", key, self._to_js(val))
-        
         # Explicit select handler to trigger change event for data binding/reactivity.
-        # Use schedule to ensure jQuery UI has updated the input value first.
         self.on("autocompleteselect", proxy(lambda *args: schedule(lambda: self.element.trigger("change"), f"autocomplete-select-{id(self)}", 0.05)))
 
     def _to_js(self, v):
@@ -1207,7 +1098,7 @@ class Accordion(Widget):
         Widget.__init__(self)
         for section in self._flatten(sections):
             self.add_section(section)
-        self.accordion()
+        self.accordion(to_js({ "heightStyle": "content", "collapsible": True }))
 
     def add_section(self, section):
         """ Adds a new section """
@@ -1254,9 +1145,10 @@ class DatePicker(Widget):
     classes = [ "ltk-datepicker" ]
     tag = "input"
 
-    def __init__(self, style=None):
+    def __init__(self, value="", style=None):
         Widget.__init__(self, style or DEFAULT_CSS)
         self.element.attr("type", "date")
+        self.set_value(value)
 
 
 class ColorPicker(Widget):
@@ -1264,9 +1156,10 @@ class ColorPicker(Widget):
     classes = [ "ltk-colorpicker" ]
     tag = "input"
 
-    def __init__(self, style=None):
+    def __init__(self, value="#000000", style=None):
         Widget.__init__(self, style or DEFAULT_CSS)
         self.element.attr("type", "color")
+        self.set_value(value)
 
 
 class RadioGroup(VBox):
@@ -1457,7 +1350,13 @@ class TextArea(Widget):
 
     def __init__(self, text="", style=None):
         Widget.__init__(self, style or DEFAULT_CSS)
-        self.element.text(text)
+        self.set_value(text)
+
+    def _set_value(self, value):
+        self.element.val(str(value))
+
+    def _get_value(self):
+        return self.element.val()
 
 
 class Code(Widget):
@@ -1522,7 +1421,6 @@ class Menu(Widget):
         self.label = MenuLabel(label)
         self.popup = MenuPopup(*items)
         Widget.__init__(self, self.label, self.popup, style or DEFAULT_CSS)
-        self.label.on("click", None, None, proxy(lambda event: self.show(event))) # pylint: disable=unnecessary-lambda
         self.label.on("click", None, None, proxy(lambda event: self.show(event))) # pylint: disable=unnecessary-lambda
 
     def replace_other(self, event):
@@ -1772,14 +1670,15 @@ class Canvas(Widget):
         Widget.__init__(self, style or DEFAULT_CSS)
 
     def __getattr__(self, name):
+        if name.startswith("_"):
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
         try:
             return getattr(self.element, name)
-        except: # pylint: disable=bare-except
+        except Exception:
             try:
                 return getattr(self.context, name)
-            except: # pylint: disable=bare-except
-                error = f"Widget {self} does not have attribute {name}"
-                raise AttributeError(error) # pylint: disable=raise-missing-from
+            except Exception:
+                raise AttributeError(f"Widget {self} does not have attribute {name}")
 
     def __setattr__(self, name, value):
         if name.startswith("_"):
